@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"log"
+
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -13,15 +15,24 @@ const (
 type model struct {
     state uint
     store *Store
+    notes []Note
+    currNote Note
+    listIndex int
     // store Store
     // textarea.Model
     // ...
 }
 
 func NewModel(store *Store) model {
+    notes, err := store.GetNotes()
+    if err != nil {
+        log.Fatalf("unable to get notes: %v", err)
+    }
+
     return model{
         state: listView,
         store: store,
+        notes: notes,
     }
 }
 
