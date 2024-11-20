@@ -2,7 +2,10 @@ module github.com/ppp3ppj/notes-bubbletea-cli
 
 go 1.23.3
 
-require github.com/charmbracelet/bubbletea v1.2.3
+require (
+	github.com/charmbracelet/bubbletea v1.2.3
+	github.com/mattn/go-sqlite3 v1.14.24
+)
 
 require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect

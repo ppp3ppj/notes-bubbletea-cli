@@ -3,6 +3,7 @@ package tui
 import (
 	"database/sql"
 	"time"
+  _ "github.com/mattn/go-sqlite3" // unknown driver sqlite3 forgotten import
 )
 
 type Note struct {
