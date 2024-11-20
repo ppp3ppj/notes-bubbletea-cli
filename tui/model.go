@@ -12,14 +12,16 @@ const (
 
 type model struct {
     state uint
+    store *Store
     // store Store
     // textarea.Model
     // ...
 }
 
-func NewModel() model {
+func NewModel(store *Store) model {
     return model{
         state: listView,
+        store: store,
     }
 }
 
