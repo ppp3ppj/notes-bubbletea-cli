@@ -16,3 +16,9 @@
 
 # Go workspace file
 go.work
+
+# SQLite
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
