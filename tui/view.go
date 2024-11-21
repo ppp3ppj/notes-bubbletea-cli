@@ -13,6 +13,9 @@ var (
 
     enumeratorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("99")).MarginRight(1)
 
+    editNoteStyle = lipgloss.NewStyle().Background(lipgloss.Color("98")).Padding(0, 1)
+    editTitleNoteStyle = lipgloss.NewStyle().Background(lipgloss.Color("95")).Padding(0, 1)
+
 )
 
 func (m model) View() string {
@@ -25,7 +28,8 @@ func (m model) View() string {
     }
 
     if m.state == bodyView {
-        s += "Note:\n\n"
+        s += editNoteStyle.Render("Note:") + "\n\n"
+        s += editTitleNoteStyle.Render(m.currNote.Title) + "\n\n"
         s += m.textArea.View() + "\n\n"
         s += faintStyle.Render("ctrl+s - save, esc - discard")
     }
