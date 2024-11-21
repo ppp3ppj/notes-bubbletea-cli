@@ -18,6 +18,18 @@ var (
 func (m model) View() string {
     s := appNameStyle.Render("NOTES APP") + "\n\n"
 
+    if m.state == titleView {
+        s += "Note title:\n\n"
+        s += m.textInput.View() + "\n\n"
+        s += faintStyle.Render("enter - save, esc - discard")
+    }
+
+    if m.state == bodyView {
+        s += "Note:\n\n"
+        s += m.textArea.View() + "\n\n"
+        s += faintStyle.Render("ctrl+s - save, esc - discard")
+    }
+
     if m.state == listView {
         for i, n := range m.notes {
             prefix := " "
@@ -29,7 +41,7 @@ func (m model) View() string {
             if len(shortBody) > 30 {
                 shortBody = shortBody[:30]
             }
-            s += enumeratorStyle.Render(prefix) + n.Title + " | " + faintStyle.Render(shortBody)
+            s += enumeratorStyle.Render(prefix) + n.Title + " | " + faintStyle.Render(shortBody) + "\n\n"
         }
         s += faintStyle.Render("n - new note, q - quit")
     }
