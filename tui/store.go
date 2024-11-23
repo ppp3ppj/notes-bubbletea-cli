@@ -84,3 +84,8 @@ func (s *Store) SaveNote(note Note) error {
 
 	return nil
 }
+
+func (s *Store) DeleteNote(noteId string) error {
+	_, err := s.conn.Exec("DELETE FROM notes WHERE id = ?", noteId)
+	return err
+}
