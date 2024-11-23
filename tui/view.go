@@ -59,8 +59,16 @@ func (m model) View() string {
 
             notesList += enumeratorStyle.Render(prefix) + n.Title + " | " + faintStyle.Render(shortBody) + "\n\n"
         }
+        // Conditionally add the "d - delete" option if there is more than one note
+        deleteOption := ""
+        if len(m.notes) >= 1 {
+            deleteOption = faintStyle.Render("d - delete") + ", "
+        }
 
-        return header + notesList + faintStyle.Render("n - new note, q - quit")
+        newNoteOption := faintStyle.Render("n - new note") + ", "
+        exitCliOption := faintStyle.Render("q - quit")
+
+        return header + notesList + newNoteOption + deleteOption + exitCliOption
     }
 
     return header // Fallback to header if no state matches
