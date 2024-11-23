@@ -40,6 +40,10 @@ type saveCompleteMsg struct {
 	notes []Note
 }
 
+type deleteCompleteMsg struct {
+	notes []Note
+}
+
 func NewModel(store *Store) model {
 	notes, err := store.GetNotes()
 	if err != nil {
@@ -96,6 +100,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.currNote = Note{}
 		m.state = listView
 
+    case deleteCompleteMsg:
+        m.notes = msg.notes
+        m.isLoading = false
+
+        if m.listIndex >= len(m.notes) && len(m.notes) > 0 {
+            m.listIndex = len(m.notes) - 1 // adjust to the last note if need
+        }
+
 	case tea.KeyMsg:
 		key := msg.String() //up, down, etc ...
 		switch m.state {
@@ -146,6 +158,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return notesLoadedMsg{notes: newNotes}
 					},
 				)
+            case "d": // Delete the seletced note
+                if len(m.notes) > 0 && m.listIndex < len(m.notes) {
+                    m.isLoading = true
+                    return m, tea.Batch(
+                        m.spinner.Tick,
+                        func() tea.Msg {
+                            err := m.store.DeleteNote(m.notes[m.listIndex].Id)
+                            if err != nil {
+                                // Handle error
+                                return tea.Quit()
+                            }
+                            updatedNotes, err := m.store.GetNotes()
+                            if err != nil {
+                                return tea.Quit()
+                            }
+                            time.Sleep(300 * time.Millisecond)
+                            return deleteCompleteMsg{notes: updatedNotes}
+                        },
+                    )
+                }
 			}
 		case titleView:
 			switch key {
