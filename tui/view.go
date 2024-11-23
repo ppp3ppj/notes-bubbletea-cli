@@ -17,30 +17,35 @@ var (
     editTitleNoteStyle = lipgloss.NewStyle().Background(lipgloss.Color("95")).Padding(0, 1)
 
 )
-
 func (m model) View() string {
-    s := appNameStyle.Render("NOTES APP") + "\n\n"
+    header := appNameStyle.Render("NOTES APP") + "\n\n"
 
-    if m.state == titleView {
-        s += "Note title:\n\n"
-        s += m.textInput.View() + "\n\n"
-        s += faintStyle.Render("enter - save, esc - discard")
+    if m.isLoading {
+        return header +
+            m.spinner.View() + " Loading..." + "\n\n"
     }
 
-    if m.state == bodyView {
-        s += editNoteStyle.Render("Note:") + "\n\n"
-        s += editTitleNoteStyle.Render(m.currNote.Title) + "\n\n"
-        s += m.textArea.View() + "\n\n"
+    switch m.state {
+    case titleView:
+        return header +
+            "Note title:\n\n" +
+            m.textInput.View() + "\n\n" +
+            faintStyle.Render("enter - save, esc - discard")
+
+    case bodyView:
+        noteDetails := editNoteStyle.Render("Note:") + "\n\n" +
+            editTitleNoteStyle.Render(m.currNote.Title) + "\n\n" +
+            m.textArea.View() + "\n\n"
 
         if m.isEditing {
-            s += faintStyle.Render("Created At: ") + faintStyle.Render(m.currNote.CreatedAt.Format("2006-01-02 15:04:05")) + "\n"
-            s += faintStyle.Render("Updated At: ") + faintStyle.Render(m.currNote.UpdatedAt.Format("2006-01-02 15:04:05")) + "\n"
+            noteDetails += faintStyle.Render("Created At: ") + faintStyle.Render(m.currNote.CreatedAt.Format("2006-01-02 15:04:05")) + "\n" +
+                faintStyle.Render("Updated At: ") + faintStyle.Render(m.currNote.UpdatedAt.Format("2006-01-02 15:04:05")) + "\n"
         }
 
-        s += faintStyle.Render("ctrl+s - save, esc - discard")
-    }
+        return header + noteDetails + faintStyle.Render("ctrl+s - save, esc - discard")
 
-    if m.state == listView {
+    case listView:
+        var notesList string
         for i, n := range m.notes {
             prefix := " "
             if i == m.listIndex {
@@ -49,12 +54,14 @@ func (m model) View() string {
 
             shortBody := strings.ReplaceAll(n.Body, "\n", " ")
             if len(shortBody) > 30 {
-                shortBody = shortBody[:30]
+                shortBody = shortBody[:30] + "..." // Add ellipsis for truncated body
             }
-            s += enumeratorStyle.Render(prefix) + n.Title + " | " + faintStyle.Render(shortBody) + "\n\n"
+
+            notesList += enumeratorStyle.Render(prefix) + n.Title + " | " + faintStyle.Render(shortBody) + "\n\n"
         }
-        s += faintStyle.Render("n - new note, q - quit")
+
+        return header + notesList + faintStyle.Render("n - new note, q - quit")
     }
 
-    return s
+    return header // Fallback to header if no state matches
 }
