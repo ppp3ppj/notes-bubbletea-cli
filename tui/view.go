@@ -33,8 +33,8 @@ func (m model) View() string {
         s += m.textArea.View() + "\n\n"
 
         if m.isEditing {
-            s += faintStyle.Render("Created At") + faintStyle.Render(m.currNote.CreatedAt.String()) + "\n"
-            s += faintStyle.Render("Updated At") + faintStyle.Render(m.currNote.UpdatedAt.String()) + "\n"
+            s += faintStyle.Render("Created At: ") + faintStyle.Render(m.currNote.CreatedAt.Format("2006-01-02 15:04:05")) + "\n"
+            s += faintStyle.Render("Updated At: ") + faintStyle.Render(m.currNote.UpdatedAt.Format("2006-01-02 15:04:05")) + "\n"
         }
 
         s += faintStyle.Render("ctrl+s - save, esc - discard")
