@@ -60,7 +60,7 @@ func (m model) View() string {
             notesList += enumeratorStyle.Render(prefix) + n.Title + " | " + faintStyle.Render(shortBody) + "\n\n"
         }
 
-        return header + notesList + faintStyle.Render("n - new note, q - quit")
+        return header + notesList + faintStyle.Render("n - new note, d - delete, q - quit")
     }
 
     return header // Fallback to header if no state matches
