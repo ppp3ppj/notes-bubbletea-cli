@@ -23,6 +23,7 @@ type model struct {
 	listIndex int
 	textArea  textarea.Model
 	textInput textinput.Model
+    isEditing bool
 }
 
 func NewModel(store *Store) model {
@@ -82,6 +83,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.textArea.SetValue(m.currNote.Body)
 				m.textArea.Focus()
 				m.textArea.CursorEnd()
+
+                m.isEditing = m.currNote.Id != 0 // Set if editing
+
 				m.state = bodyView
 			}
 		case titleView:
@@ -117,10 +121,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
                     return m, tea.Quit
                 }
 
-                m.currNote = Note{}
+
+                m.isEditing = false // Reset editing case
+                m.currNote = Note{} // Clear current note
                 m.state = listView
 
 			case "esc":
+                m.isEditing = false // Reset editing case
 				m.state = listView
 			}
 		}
