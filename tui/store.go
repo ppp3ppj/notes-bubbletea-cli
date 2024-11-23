@@ -2,12 +2,13 @@ package tui
 
 import (
 	"database/sql"
+	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3" // unknown driver sqlite3 forgotten import
 	"time"
 )
 
 type Note struct {
-	Id        int64
+	Id        string
 	Title     string
 	Body      string
 	CreatedAt time.Time
@@ -26,7 +27,7 @@ func (s *Store) Init() error {
 	}
 
 	createTableStmt := `CREATE TABLE IF NOT EXISTS Notes (
-        Id interger not null primary key,
+        Id TEXT not null primary key,
         Title text not null,
         Body text not null,
         CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -41,7 +42,7 @@ func (s *Store) Init() error {
 }
 
 func (s *Store) GetNotes() ([]Note, error) {
-    rows, err := s.conn.Query("SELECT Id, Title, Body, CreatedAt, UpdatedAt FROM Notes")
+	rows, err := s.conn.Query("SELECT Id, Title, Body, CreatedAt, UpdatedAt FROM Notes")
 	if err != nil {
 		return nil, err
 	}
@@ -58,15 +59,15 @@ func (s *Store) GetNotes() ([]Note, error) {
 }
 
 func (s *Store) SaveNote(note Note) error {
-    now := time.Now().UTC()
+	now := time.Now().UTC()
 
-	if note.Id == 0 {
-		note.Id = now.Unix()
-        note.CreatedAt = now
-        note.UpdatedAt = now
+	if note.Id == "" {
+		note.Id = uuid.New().String()
+		note.CreatedAt = now
+		note.UpdatedAt = now
 	} else {
-        note.UpdatedAt = now
-    }
+		note.UpdatedAt = now
+	}
 
 	upsertQuery := `INSERT INTO Notes (Id, Title, Body, CreatedAt, UpdatedAt)
     VALUES (?, ?, ?, ?, ?)

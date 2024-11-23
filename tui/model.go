@@ -84,7 +84,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.textArea.Focus()
 				m.textArea.CursorEnd()
 
-                m.isEditing = m.currNote.Id != 0 // Set if editing
+                m.isEditing = m.currNote.Id != "" // Set if editing
 
 				m.state = bodyView
 			}
