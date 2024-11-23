@@ -31,8 +31,8 @@ func (m model) View() string {
         s += editNoteStyle.Render("Note:") + "\n\n"
         s += editTitleNoteStyle.Render(m.currNote.Title) + "\n\n"
         s += m.textArea.View() + "\n\n"
-        s += faintStyle.Render("Created At") + "\n"
-        s += faintStyle.Render("Updated At") + "\n"
+        s += faintStyle.Render("Created At") + faintStyle.Render(m.currNote.CreatedAt.String()) + "\n"
+        s += faintStyle.Render("Updated At") + faintStyle.Render(m.currNote.UpdatedAt.String()) + "\n"
         s += faintStyle.Render("ctrl+s - save, esc - discard")
     }
 

@@ -2,71 +2,84 @@ package tui
 
 import (
 	"database/sql"
+	_ "github.com/mattn/go-sqlite3" // unknown driver sqlite3 forgotten import
 	"time"
-  _ "github.com/mattn/go-sqlite3" // unknown driver sqlite3 forgotten import
 )
 
 type Note struct {
-    Id int64
-    Title string
-    Body string
+	Id        int64
+	Title     string
+	Body      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type Store struct {
-    conn *sql.DB
+	conn *sql.DB
 }
 
 func (s *Store) Init() error {
-    var err error
-    s.conn, err = sql.Open("sqlite3", "./notes.db")
-    if err != nil {
-        return err
-    }
+	var err error
+	s.conn, err = sql.Open("sqlite3", "./notes.db")
+	if err != nil {
+		return err
+	}
 
-    createTableStmt := `CREATE TABLE IF NOT EXISTS Notes (
+	createTableStmt := `CREATE TABLE IF NOT EXISTS Notes (
         Id interger not null primary key,
         Title text not null,
-        Body text not null
+        Body text not null,
+        CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );`
 
-    if _, err = s.conn.Exec(createTableStmt); err != nil {
-        return err
-    }
+	if _, err = s.conn.Exec(createTableStmt); err != nil {
+		return err
+	}
 
-    return nil
+	return nil
 }
 
 func (s *Store) GetNotes() ([]Note, error) {
-    rows, err := s.conn.Query("SELECT * FROM Notes")
-    if err != nil {
-        return nil, err
-}
+    rows, err := s.conn.Query("SELECT Id, Title, Body, CreatedAt, UpdatedAt FROM Notes")
+	if err != nil {
+		return nil, err
+	}
 
-    defer rows.Close()
-    notes := []Note{}
-    for rows.Next() {
-        var note Note
-        rows.Scan(&note.Id, &note.Title, &note.Body)
-        notes = append(notes, note)
-    }
+	defer rows.Close()
+	notes := []Note{}
+	for rows.Next() {
+		var note Note
+		rows.Scan(&note.Id, &note.Title, &note.Body, &note.CreatedAt, &note.UpdatedAt)
+		notes = append(notes, note)
+	}
 
-    return notes, nil
+	return notes, nil
 }
 
 func (s *Store) SaveNote(note Note) error {
-    if note.Id == 0 {
-        note.Id = time.Now().UTC().Unix()
+    now := time.Now().UTC()
+
+	if note.Id == 0 {
+		note.Id = now.Unix()
+        note.CreatedAt = now
+        note.UpdatedAt = now
+	} else {
+        note.UpdatedAt = now
     }
 
-    upsertQuery := `INSERT INTO Notes (Id, Title, Body)
-    VALUES (?, ?, ?)
+	upsertQuery := `INSERT INTO Notes (Id, Title, Body, CreatedAt, UpdatedAt)
+    VALUES (?, ?, ?, ?, ?)
     ON CONFLICT(Id) DO UPDATE
-    SET Title=excluded.Title, body=excluded.Body;
+    SET
+        Title=excluded.Title,
+        body=excluded.Body,
+        UpdatedAt=excluded.UpdatedAt;
     `
 
-    if _, err := s.conn.Exec(upsertQuery, note.Id, note.Title, note.Body); err != nil {
-        return err
-    }
+	if _, err := s.conn.Exec(upsertQuery, note.Id, note.Title, note.Body, note.CreatedAt, note.UpdatedAt); err != nil {
+		return err
+	}
 
-    return nil
+	return nil
 }
