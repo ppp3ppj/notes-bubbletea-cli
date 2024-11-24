@@ -83,6 +83,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.textArea, cmd = m.textArea.Update(msg)
 	cmds = append(cmds, cmd)
 
+    m.textInputTime, cmd = m.textInputTime.Update(msg)
+    cmds = append(cmds, cmd)
+
 	switch msg := msg.(type) {
 	case spinner.TickMsg:
 		if m.isLoading {
@@ -207,6 +210,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case bodyView:
 			switch key {
 			case "tab":
+                m.textInputTime.Focus()
 				m.state = timeView
 			case "ctrl+s":
 				body := m.textArea.Value()
