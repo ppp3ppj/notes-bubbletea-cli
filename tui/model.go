@@ -15,17 +15,19 @@ const (
 	listView uint = iota
 	titleView
 	bodyView
+	timeView
 )
 
 type model struct {
-	state     uint
-	store     *Store
-	notes     []Note
-	currNote  Note
-	listIndex int
-	textArea  textarea.Model
-	textInput textinput.Model
-	isEditing bool
+	state         uint
+	store         *Store
+	notes         []Note
+	currNote      Note
+	listIndex     int
+	textArea      textarea.Model
+	textInput     textinput.Model
+	textInputTime textinput.Model
+	isEditing     bool
 
 	spinner   spinner.Model
 	isLoading bool
@@ -54,13 +56,14 @@ func NewModel(store *Store) model {
 	spin.Spinner = spinner.Dot
 
 	return model{
-		state:     listView,
-		store:     store,
-		notes:     notes,
-		textArea:  textarea.New(),
-		textInput: textinput.New(),
-		spinner:   spin,
-		isLoading: false,
+		state:         listView,
+		store:         store,
+		notes:         notes,
+		textArea:      textarea.New(),
+		textInput:     textinput.New(),
+		spinner:       spin,
+		isLoading:     false,
+		textInputTime: textinput.New(),
 	}
 }
 
@@ -100,21 +103,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.currNote = Note{}
 		m.state = listView
 
-    case deleteCompleteMsg:
-        m.notes = msg.notes
-        m.isLoading = false
+	case deleteCompleteMsg:
+		m.notes = msg.notes
+		m.isLoading = false
 
-        if m.listIndex >= len(m.notes) && len(m.notes) > 0 {
-            m.listIndex = len(m.notes) - 1 // adjust to the last note if need
-        }
+		if m.listIndex >= len(m.notes) && len(m.notes) > 0 {
+			m.listIndex = len(m.notes) - 1 // adjust to the last note if need
+		}
 
 	case tea.KeyMsg:
 		key := msg.String() //up, down, etc ...
 		switch m.state {
 		case listView:
 			if m.isLoading {
-               // Don't allow interaction with the list when loading
-			   return m, tea.Batch(cmds...)
+				// Don't allow interaction with the list when loading
+				return m, tea.Batch(cmds...)
 			}
 			switch key {
 			case "q":
@@ -158,26 +161,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return notesLoadedMsg{notes: newNotes}
 					},
 				)
-            case "d": // Delete the seletced note
-                if len(m.notes) > 0 && m.listIndex < len(m.notes) {
-                    m.isLoading = true
-                    return m, tea.Batch(
-                        m.spinner.Tick,
-                        func() tea.Msg {
-                            err := m.store.DeleteNote(m.notes[m.listIndex].Id)
-                            if err != nil {
-                                // Handle error
-                                return tea.Quit()
-                            }
-                            updatedNotes, err := m.store.GetNotes()
-                            if err != nil {
-                                return tea.Quit()
-                            }
-                            time.Sleep(300 * time.Millisecond)
-                            return deleteCompleteMsg{notes: updatedNotes}
-                        },
-                    )
-                }
+			case "d": // Delete the seletced note
+				if len(m.notes) > 0 && m.listIndex < len(m.notes) {
+					m.isLoading = true
+					return m, tea.Batch(
+						m.spinner.Tick,
+						func() tea.Msg {
+							err := m.store.DeleteNote(m.notes[m.listIndex].Id)
+							if err != nil {
+								// Handle error
+								return tea.Quit()
+							}
+							updatedNotes, err := m.store.GetNotes()
+							if err != nil {
+								return tea.Quit()
+							}
+							time.Sleep(300 * time.Millisecond)
+							return deleteCompleteMsg{notes: updatedNotes}
+						},
+					)
+				}
 			}
 		case titleView:
 			switch key {
@@ -194,8 +197,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "esc":
 				m.state = listView
 			}
+		case timeView:
+			switch key {
+			case "q":
+                return m, tea.Quit
+			case "esc":
+				m.state = bodyView
+			}
 		case bodyView:
 			switch key {
+			case "tab":
+				m.state = timeView
 			case "ctrl+s":
 				body := m.textArea.Value()
 				m.currNote.Body = body
@@ -230,5 +242,3 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	return m, tea.Batch(cmds...)
 }
-
-
