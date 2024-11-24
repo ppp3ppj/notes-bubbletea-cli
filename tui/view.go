@@ -32,7 +32,7 @@ func (m model) View() string {
 			fmt.Sprintf(
 				"What’s your time?\n\n%s\n\n%s",
 				m.textInputTime.View(),
-				faintStyle.Render("(esc to quit)"),
+				faintStyle.Render("enter - next(now save), esc - quit"),
 			) + "\n"
 
 	case titleView:
@@ -51,7 +51,7 @@ func (m model) View() string {
 				faintStyle.Render("Updated At: ") + faintStyle.Render(m.currNote.UpdatedAt.Format("2006-01-02 15:04:05")) + "\n"
 		}
 
-		return header + noteDetails + faintStyle.Render("ctrl+s - save, esc - discard")
+		return header + noteDetails + faintStyle.Render("tab - next, esc - discard")
 
 	case listView:
 		var notesList string
