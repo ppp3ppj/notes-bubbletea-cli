@@ -11,6 +11,7 @@ type Note struct {
 	Id        string
 	Title     string
 	Body      string
+    TotalTime string
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -30,6 +31,7 @@ func (s *Store) Init() error {
         Id TEXT not null primary key,
         Title text not null,
         Body text not null,
+        TotalTime TEXT,
         CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );`
@@ -42,7 +44,7 @@ func (s *Store) Init() error {
 }
 
 func (s *Store) GetNotes() ([]Note, error) {
-	rows, err := s.conn.Query("SELECT Id, Title, Body, CreatedAt, UpdatedAt FROM Notes")
+	rows, err := s.conn.Query("SELECT Id, Title, Body, TotalTime, CreatedAt, UpdatedAt FROM Notes")
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +53,7 @@ func (s *Store) GetNotes() ([]Note, error) {
 	notes := []Note{}
 	for rows.Next() {
 		var note Note
-		rows.Scan(&note.Id, &note.Title, &note.Body, &note.CreatedAt, &note.UpdatedAt)
+		rows.Scan(&note.Id, &note.Title, &note.Body, &note.TotalTime, &note.CreatedAt, &note.UpdatedAt)
 		notes = append(notes, note)
 	}
 
@@ -69,16 +71,17 @@ func (s *Store) SaveNote(note Note) error {
 		note.UpdatedAt = now
 	}
 
-	upsertQuery := `INSERT INTO Notes (Id, Title, Body, CreatedAt, UpdatedAt)
-    VALUES (?, ?, ?, ?, ?)
+	upsertQuery := `INSERT INTO Notes (Id, Title, Body, TotalTime, CreatedAt, UpdatedAt)
+    VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT(Id) DO UPDATE
     SET
         Title=excluded.Title,
         body=excluded.Body,
+        TotalTime=excluded.TotalTime,
         UpdatedAt=excluded.UpdatedAt;
     `
 
-	if _, err := s.conn.Exec(upsertQuery, note.Id, note.Title, note.Body, note.CreatedAt, note.UpdatedAt); err != nil {
+	if _, err := s.conn.Exec(upsertQuery, note.Id, note.Title, note.Body, note.TotalTime, note.CreatedAt, note.UpdatedAt); err != nil {
 		return err
 	}
 
