@@ -83,8 +83,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.textArea, cmd = m.textArea.Update(msg)
 	cmds = append(cmds, cmd)
 
-    m.textInputTime, cmd = m.textInputTime.Update(msg)
-    cmds = append(cmds, cmd)
+	m.textInputTime, cmd = m.textInputTime.Update(msg)
+	cmds = append(cmds, cmd)
 
 	switch msg := msg.(type) {
 	case spinner.TickMsg:
@@ -141,6 +141,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "enter":
 				m.currNote = m.notes[m.listIndex]
 				m.textArea.SetValue(m.currNote.Body)
+                m.textInputTime.SetValue(m.currNote.TotalTime)
 				m.textArea.Focus()
 				m.textArea.CursorEnd()
 
@@ -203,18 +204,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case timeView:
 			switch key {
 			case "q":
-                return m, tea.Quit
+				return m, tea.Quit
 			case "esc":
 				m.state = bodyView
-			}
-		case bodyView:
-			switch key {
-			case "tab":
-                m.textInputTime.Focus()
-				m.state = timeView
+
 			case "ctrl+s":
 				body := m.textArea.Value()
 				m.currNote.Body = body
+				totalTime := m.textInputTime.Value()
+				m.currNote.TotalTime = totalTime
 
 				// Start loading spinner
 				m.isLoading = true
@@ -238,6 +236,48 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return saveCompleteMsg{notes: newNotes}
 					},
 				)
+			}
+		case bodyView:
+			switch key {
+			case "tab":
+                if m.isEditing {
+                    m.textInputTime.Focus()
+                    m.textInputTime.CursorEnd()
+                } else {
+                    m.textInputTime.SetValue("")
+                    m.textInputTime.Focus()
+                    m.textInputTime.CursorEnd()
+                }
+				m.state = timeView
+				/*
+					case "ctrl+s":
+						body := m.textArea.Value()
+						m.currNote.Body = body
+
+						// Start loading spinner
+						m.isLoading = true
+
+						return m, tea.Batch(
+							m.spinner.Tick,
+							func() tea.Msg {
+								err := m.store.SaveNote(m.currNote)
+								if err != nil {
+									// Handle save error (simplified for example)
+									return tea.Quit
+								}
+								newNotes, err := m.store.GetNotes()
+								if err != nil {
+									// Handle fetch error (simplified for example)
+									return tea.Quit
+								}
+
+								// Simulate load operation with a delay
+								time.Sleep(400 * time.Millisecond) // Simulated delay
+								return saveCompleteMsg{notes: newNotes}
+							},
+						)
+
+				*/
 			case "esc":
 				m.isEditing = false // Reset editing case
 				m.state = listView
