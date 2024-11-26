@@ -35,6 +35,23 @@ func (m model) View() string {
 				faintStyle.Render("enter - next(now save), esc - quit"),
 			) + "\n"
 
+	case projectSelectView:
+		s := strings.Builder{}
+		s.WriteString("What kind of Bubble Tea would you like to order?\n\n")
+
+		for i := 0; i < len(choices); i++ {
+			if m.projectCursor == i {
+				s.WriteString("(•) ")
+			} else {
+				s.WriteString("( ) ")
+			}
+
+            s.WriteString(choices[i])
+            s.WriteString("\n")
+		}
+
+		return header + s.String()
+
 	case titleView:
 		return header +
 			"Note title:\n\n" +

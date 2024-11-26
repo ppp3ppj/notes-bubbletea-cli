@@ -16,8 +16,10 @@ const (
 	titleView
 	bodyView
 	timeView
-    projectSelectView
+	projectSelectView
 )
+
+var choices = []string{"Taro", "Coffee", "Lychee"}
 
 type model struct {
 	state         uint
@@ -32,6 +34,9 @@ type model struct {
 
 	spinner   spinner.Model
 	isLoading bool
+
+	projectCursor int
+	projectChoice string
 }
 
 // Custom message for loading notes
@@ -142,7 +147,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "enter":
 				m.currNote = m.notes[m.listIndex]
 				m.textArea.SetValue(m.currNote.Body)
-                m.textInputTime.SetValue(m.currNote.TotalTime)
+				m.textInputTime.SetValue(m.currNote.TotalTime)
 				m.textArea.Focus()
 				m.textArea.CursorEnd()
 
@@ -203,13 +208,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = listView
 			}
 
-        case projectSelectView:
-            switch key {
-                case "q":
-                    return m, tea.Quit
-                case "esc":
-                    m.state = timeView
-            }
+		case projectSelectView:
+			switch key {
+			case "q":
+				return m, tea.Quit
+			case "esc":
+				m.state = timeView
+			case "down", "j":
+                m.projectCursor++
+                if m.projectCursor >= len(choices) {
+                    m.projectCursor = 0
+                }
+
+			case "up", "k":
+                m.projectCursor--
+                if m.projectCursor < 0 {
+                    m.projectCursor = len(choices) - 1
+                }
+			}
 		case timeView:
 			switch key {
 			case "q":
@@ -217,8 +233,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "esc":
 				m.state = bodyView
 
-            case "enter":
-                m.state = projectSelectView
+			case "enter":
+				m.state = projectSelectView
 
 			case "ctrl+s":
 				body := m.textArea.Value()
@@ -252,14 +268,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case bodyView:
 			switch key {
 			case "tab":
-                if m.isEditing {
-                    m.textInputTime.Focus()
-                    m.textInputTime.CursorEnd()
-                } else {
-                    m.textInputTime.SetValue("")
-                    m.textInputTime.Focus()
-                    m.textInputTime.CursorEnd()
-                }
+				if m.isEditing {
+					m.textInputTime.Focus()
+					m.textInputTime.CursorEnd()
+				} else {
+					m.textInputTime.SetValue("")
+					m.textInputTime.Focus()
+					m.textInputTime.CursorEnd()
+				}
 				m.state = timeView
 				/*
 					case "ctrl+s":
