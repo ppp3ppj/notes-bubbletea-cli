@@ -16,6 +16,7 @@ const (
 	titleView
 	bodyView
 	timeView
+    projectSelectView
 )
 
 type model struct {
@@ -201,12 +202,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "esc":
 				m.state = listView
 			}
+
+        case projectSelectView:
+            switch key {
+                case "q":
+                    return m, tea.Quit
+                case "esc":
+                    m.state = timeView
+            }
 		case timeView:
 			switch key {
 			case "q":
 				return m, tea.Quit
 			case "esc":
 				m.state = bodyView
+
+            case "enter":
+                m.state = projectSelectView
 
 			case "ctrl+s":
 				body := m.textArea.Value()
