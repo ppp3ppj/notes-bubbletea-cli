@@ -213,13 +213,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "q":
 				return m, tea.Quit
 			case "esc":
+                m.textInputTime.Focus()
+                m.textInputTime.CursorEnd()
+
 				m.state = timeView
 			case "down", "j":
                 m.projectCursor++
                 if m.projectCursor >= len(choices) {
                     m.projectCursor = 0
                 }
-
 			case "up", "k":
                 m.projectCursor--
                 if m.projectCursor < 0 {
@@ -231,9 +233,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "q":
 				return m, tea.Quit
 			case "esc":
+                // Make text area focus again
+                m.textInputTime.Blur() // Blur time input before switching back
+                m.textArea.Focus()
+                m.textArea.CursorEnd()
 				m.state = bodyView
 
 			case "enter":
+                // Blur textInputTime when transitioning out of timeView
+                m.textInputTime.Blur()
 				m.state = projectSelectView
 
 			case "ctrl+s":
@@ -276,6 +284,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.textInputTime.Focus()
 					m.textInputTime.CursorEnd()
 				}
+                // Blur textArea when transitioning out of bodyView
+                m.textArea.Blur()
 				m.state = timeView
 				/*
 					case "ctrl+s":
@@ -308,6 +318,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				*/
 			case "esc":
 				m.isEditing = false // Reset editing case
+                m.textArea.Blur() // Ensure focus is cleared
 				m.state = listView
 			}
 		}
