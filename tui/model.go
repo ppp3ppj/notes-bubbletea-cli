@@ -19,8 +19,6 @@ const (
 	projectSelectView
 )
 
-var choices = []string{"Taro", "Coffee", "Lychee"}
-
 type model struct {
 	state         uint
 	store         *Store
@@ -37,6 +35,8 @@ type model struct {
 
 	projectCursor int
 	projectChoice string
+
+    projects []Project
 }
 
 // Custom message for loading notes
@@ -58,6 +58,12 @@ func NewModel(store *Store) model {
 		log.Fatalf("unable to get notes: %v", err)
 	}
 
+    projects, err := store.GetProjects()
+    if err != nil {
+		log.Fatalf("unable to get projects: %v", err)
+    }
+
+
 	spin := spinner.New()
 	spin.Spinner = spinner.Dot
 
@@ -70,6 +76,7 @@ func NewModel(store *Store) model {
 		spinner:       spin,
 		isLoading:     false,
 		textInputTime: textinput.New(),
+        projects: projects,
 	}
 }
 
@@ -219,13 +226,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = timeView
 			case "down", "j":
                 m.projectCursor++
-                if m.projectCursor >= len(choices) {
+                if m.projectCursor >= len(m.projects) {
                     m.projectCursor = 0
                 }
 			case "up", "k":
                 m.projectCursor--
                 if m.projectCursor < 0 {
-                    m.projectCursor = len(choices) - 1
+                    m.projectCursor = len(m.projects) - 1
                 }
 			}
 		case timeView:
