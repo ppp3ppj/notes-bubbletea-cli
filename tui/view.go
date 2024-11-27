@@ -39,14 +39,14 @@ func (m model) View() string {
 		s := strings.Builder{}
 		s.WriteString("What kind of Bubble Tea would you like to order?\n\n")
 
-		for i := 0; i < len(choices); i++ {
+		for i := 0; i < len(m.projects); i++ {
 			if m.projectCursor == i {
 				s.WriteString("(•) ")
 			} else {
 				s.WriteString("( ) ")
 			}
 
-            s.WriteString(choices[i])
+            s.WriteString(m.projects[i].Name)
             s.WriteString("\n")
 		}
 
