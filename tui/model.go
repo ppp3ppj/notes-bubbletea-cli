@@ -34,9 +34,9 @@ type model struct {
 	isLoading bool
 
 	projectCursor int
-	projectChoice string
 
-    projects []Project
+	projects    []Project
+	currProject Project
 }
 
 // Custom message for loading notes
@@ -58,11 +58,10 @@ func NewModel(store *Store) model {
 		log.Fatalf("unable to get notes: %v", err)
 	}
 
-    projects, err := store.GetProjects()
-    if err != nil {
+	projects, err := store.GetProjects()
+	if err != nil {
 		log.Fatalf("unable to get projects: %v", err)
-    }
-
+	}
 
 	spin := spinner.New()
 	spin.Spinner = spinner.Dot
@@ -76,7 +75,7 @@ func NewModel(store *Store) model {
 		spinner:       spin,
 		isLoading:     false,
 		textInputTime: textinput.New(),
-        projects: projects,
+		projects:      projects,
 	}
 }
 
@@ -117,7 +116,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.isLoading = false
 		m.isEditing = false
 		m.currNote = Note{}
+		// reset currProject
+        // or m.currProject = Project{}
+        if len(m.projects) > 0 {
+            m.projectCursor = 0
+            m.currProject = m.projects[m.projectCursor]
+        }
 		m.state = listView
+
 
 	case deleteCompleteMsg:
 		m.notes = msg.notes
@@ -220,36 +226,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "q":
 				return m, tea.Quit
 			case "esc":
-                m.textInputTime.Focus()
-                m.textInputTime.CursorEnd()
+				m.textInputTime.Focus()
+				m.textInputTime.CursorEnd()
 
 				m.state = timeView
 			case "down", "j":
-                m.projectCursor++
-                if m.projectCursor >= len(m.projects) {
-                    m.projectCursor = 0
-                }
+				m.projectCursor++
+				if m.projectCursor >= len(m.projects) {
+					m.projectCursor = 0
+				}
 			case "up", "k":
-                m.projectCursor--
-                if m.projectCursor < 0 {
-                    m.projectCursor = len(m.projects) - 1
-                }
-			}
-		case timeView:
-			switch key {
-			case "q":
-				return m, tea.Quit
-			case "esc":
-                // Make text area focus again
-                m.textInputTime.Blur() // Blur time input before switching back
-                m.textArea.Focus()
-                m.textArea.CursorEnd()
-				m.state = bodyView
+				m.projectCursor--
+				if m.projectCursor < 0 {
+					m.projectCursor = len(m.projects) - 1
+				}
 
 			case "enter":
-                // Blur textInputTime when transitioning out of timeView
-                m.textInputTime.Blur()
-				m.state = projectSelectView
+				m.currProject = m.projects[m.projectCursor]
 
 			case "ctrl+s":
 				body := m.textArea.Value()
@@ -257,13 +250,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				totalTime := m.textInputTime.Value()
 				m.currNote.TotalTime = totalTime
 
+				// force set currProject by cursor
+				m.currProject = m.projects[m.projectCursor]
+
 				// Start loading spinner
 				m.isLoading = true
 
 				return m, tea.Batch(
 					m.spinner.Tick,
 					func() tea.Msg {
-						err := m.store.SaveNote(m.currNote)
+						err := m.store.SaveNoteWithProject(m.currNote, m.currProject.Id)
 						if err != nil {
 							// Handle save error (simplified for example)
 							return tea.Quit
@@ -280,6 +276,70 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					},
 				)
 			}
+
+		case timeView:
+			switch key {
+			case "q":
+				return m, tea.Quit
+			case "esc":
+				// Make text area focus again
+				m.textInputTime.Blur() // Blur time input before switching back
+				m.textArea.Focus()
+				m.textArea.CursorEnd()
+				m.state = bodyView
+
+			case "enter":
+				// Blur textInputTime when transitioning out of timeView
+				m.textInputTime.Blur()
+
+				// set cursor when edit have project data
+				// Find the index of the current project in m.projects
+				if m.isEditing {
+					for i, project := range m.projects {
+						if project.Name == m.currNote.Project.Name { // Adjust comparison if necessary
+							m.projectCursor = i
+							break
+						}
+					}
+				}
+
+				//m.projectCursor = 2
+				m.currProject = m.projects[m.projectCursor]
+
+				m.state = projectSelectView
+				// set current project if enter
+
+				/*
+					case "ctrl+s":
+						body := m.textArea.Value()
+						m.currNote.Body = body
+						totalTime := m.textInputTime.Value()
+						m.currNote.TotalTime = totalTime
+
+						// Start loading spinner
+						m.isLoading = true
+
+						return m, tea.Batch(
+							m.spinner.Tick,
+							func() tea.Msg {
+								err := m.store.SaveNote(m.currNote)
+								if err != nil {
+									// Handle save error (simplified for example)
+									return tea.Quit
+								}
+								newNotes, err := m.store.GetNotes()
+								if err != nil {
+									// Handle fetch error (simplified for example)
+									return tea.Quit
+								}
+
+								// Simulate load operation with a delay
+								time.Sleep(400 * time.Millisecond) // Simulated delay
+								return saveCompleteMsg{notes: newNotes}
+							},
+						)
+				*/
+			}
 		case bodyView:
 			switch key {
 			case "tab":
@@ -291,8 +351,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.textInputTime.Focus()
 					m.textInputTime.CursorEnd()
 				}
-                // Blur textArea when transitioning out of bodyView
-                m.textArea.Blur()
+				// Blur textArea when transitioning out of bodyView
+				m.textArea.Blur()
 				m.state = timeView
 				/*
 					case "ctrl+s":
@@ -325,7 +385,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				*/
 			case "esc":
 				m.isEditing = false // Reset editing case
-                m.textArea.Blur() // Ensure focus is cleared
+				m.textArea.Blur()   // Ensure focus is cleared
 				m.state = listView
 			}
 		}
