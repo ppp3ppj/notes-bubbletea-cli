@@ -13,7 +13,7 @@ type Note struct {
 	Title     string
 	Body      string
 	TotalTime string
-    Project Project
+	Project   Project
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -22,14 +22,14 @@ type Project struct {
 	Id          int
 	Name        string
 	Description string
-    Categories []Category
+	Categories  []Category
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
 
 type Category struct {
-    Id int
-    Name string
+	Id   int
+	Name string
 }
 
 type Store struct {
@@ -63,6 +63,23 @@ func (s *Store) Init() error {
         FOREIGN KEY (ProjectId) REFERENCES Projects(Id)
     );`
 
+	createTableCategoryStmt := `
+        CREATE TABLE IF NOT EXISTS Categories (
+            Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            Name TEXT NOT NULL UNIQUE
+        );
+    `
+
+	createTableProjectCategoriesStmt := `
+        CREATE TABLE IF NOT EXISTS ProjectCategories (
+            ProjectId INTEGER NOT NULL,
+            CategoryId INTEGER NOT NULL,
+            PRIMARY KEY (ProjectId, CategoryId),
+            FOREIGN KEY (ProjectId) REFERENCES Projects(Id),
+            FOREIGN KEY (CategoryId) REFERENCES Categories(Id)
+        );
+    `
+
 	if _, err = s.conn.Exec(createTableProjectStmt); err != nil {
 		return err
 	}
@@ -71,20 +88,27 @@ func (s *Store) Init() error {
 		return err
 	}
 
-
-    // Insert mock projects if none exist
-    mockProjects := []Project {
-        {Name: "Work", Description: "Work-related tasks"},
-        {Name: "Personal", Description: "Personal notes and ideas"},
-        {Name: "Hobbies", Description: "Notes for hobbies and interests"},
+    if _, err = s.conn.Exec(createTableCategoryStmt); err != nil {
+        return err
     }
 
-    for _, project := range mockProjects {
-        if err := s.SaveProject(project); err != nil {
-            // Ignore duplicate entries
-            continue
-        }
+    if _, err = s.conn.Exec(createTableProjectCategoriesStmt); err != nil {
+        return err
     }
+
+	// Insert mock projects if none exist
+	mockProjects := []Project{
+		{Name: "Work", Description: "Work-related tasks"},
+		{Name: "Personal", Description: "Personal notes and ideas"},
+		{Name: "Hobbies", Description: "Notes for hobbies and interests"},
+	}
+
+	for _, project := range mockProjects {
+		if err := s.SaveProject(project); err != nil {
+			// Ignore duplicate entries
+			continue
+		}
+	}
 
 	return nil
 }
@@ -233,7 +257,6 @@ func (s *Store) SaveNoteWithProject(note Note, projectId int) error {
 	return nil
 }
 
-
 func (s *Store) GetNotesByProject(projectId int) ([]Note, error) {
 	rows, err := s.conn.Query(
 		"SELECT Id, Title, Body, TotalTime, CreatedAt, UpdatedAt FROM Notes WHERE ProjectId = ?", projectId)
@@ -264,4 +287,39 @@ func (s *Store) GetProjectById(projectId int) (Project, error) {
 		return Project{}, err
 	}
 	return project, nil
+}
+
+func (s *Store) AssignCategoriesToProject(projectId int, categoryIds []int) error {
+	query := "INSERT OR IGNORE INTO ProjectCategories (ProjectId, CategoryId) VALUES (?, ?)"
+	for _, categoryId := range categoryIds {
+		if _, err := s.conn.Exec(query, projectId, categoryId); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Store) GetCategoriesByProject(projectId int) ([]Category, error) {
+	query := `
+        SELECT c.Id, c.Name
+        FROM Categories c
+        INNER JOIN ProjectCategories pc ON c.Id = pc.CategoryId
+        WHERE pc.ProjectId = ?
+    `
+	rows, err := s.conn.Query(query, projectId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var categories []Category
+	for rows.Next() {
+		var category Category
+		if err := rows.Scan(&category.Id, &category.Name); err != nil {
+			return nil, err
+		}
+		categories = append(categories, category)
+	}
+	return categories, nil
 }
