@@ -101,6 +101,7 @@ func (s *Store) Init() error {
 		{Name: "Work", Description: "Work-related tasks"},
 		{Name: "Personal", Description: "Personal notes and ideas"},
 		{Name: "Hobbies", Description: "Notes for hobbies and interests"},
+		{Name: "General", Description: "Notes for general idea"},
 	}
 
 	for _, project := range mockProjects {
