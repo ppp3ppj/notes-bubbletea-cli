@@ -22,8 +22,14 @@ type Project struct {
 	Id          int
 	Name        string
 	Description string
+    Categories []Category
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+}
+
+type Category struct {
+    Id int
+    Name string
 }
 
 type Store struct {
