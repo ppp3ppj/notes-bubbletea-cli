@@ -88,13 +88,13 @@ func (s *Store) Init() error {
 		return err
 	}
 
-    if _, err = s.conn.Exec(createTableCategoryStmt); err != nil {
-        return err
-    }
+	if _, err = s.conn.Exec(createTableCategoryStmt); err != nil {
+		return err
+	}
 
-    if _, err = s.conn.Exec(createTableProjectCategoriesStmt); err != nil {
-        return err
-    }
+	if _, err = s.conn.Exec(createTableProjectCategoriesStmt); err != nil {
+		return err
+	}
 
 	// Insert mock projects if none exist
 	mockProjects := []Project{
@@ -107,6 +107,47 @@ func (s *Store) Init() error {
 		if err := s.SaveProject(project); err != nil {
 			// Ignore duplicate entries
 			continue
+		}
+	}
+
+	// Insert mock categories and project categories
+	mockCategories := []Category{
+		{Name: "Urgent"},
+		{Name: "Important"},
+		{Name: "Optional"},
+	}
+
+	for _, category := range mockCategories {
+		query := `INSERT OR IGNORE INTO Categories (Name) VALUES (?);`
+		if _, err := s.conn.Exec(query, category.Name); err != nil {
+			return err
+		}
+	}
+
+	// Link categories to projects (mock)
+	mockAssignments := map[string][]string{
+		"Work":     {"Urgent", "Important"},
+		"Personal": {"Important", "Optional"},
+		"Hobbies":  {"Optional"},
+	}
+
+	for projectName, categoryNames := range mockAssignments {
+		project, err := s.GetProjectByName(projectName)
+		if err != nil || project.Id == 0 {
+			continue
+		}
+
+		for _, categoryName := range categoryNames {
+			var categoryId int
+			err := s.conn.QueryRow(`SELECT Id FROM Categories WHERE Name = ?`, categoryName).Scan(&categoryId)
+			if err != nil {
+				continue
+			}
+
+			// Assign categories to the project
+			if err := s.AssignCategoriesToProject(project.Id, []int{categoryId}); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -322,4 +363,18 @@ func (s *Store) GetCategoriesByProject(projectId int) ([]Category, error) {
 		categories = append(categories, category)
 	}
 	return categories, nil
+}
+
+func (s *Store) GetProjectByName(name string) (Project, error) {
+	var project Project
+	query := `SELECT Id, Name, Description, CreatedAt, UpdatedAt FROM Projects WHERE Name = ?`
+	err := s.conn.QueryRow(query, name).Scan(
+		&project.Id, &project.Name, &project.Description, &project.CreatedAt, &project.UpdatedAt,
+	)
+	if err == sql.ErrNoRows {
+		return Project{}, nil // Return zero value
+	} else if err != nil {
+		return Project{}, err
+	}
+	return project, nil
 }
