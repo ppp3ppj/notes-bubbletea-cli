@@ -67,7 +67,7 @@ func (m model) View() string {
             s.WriteString("\n")
 		}
 
-		return header + s.String()
+		return header + s.String() + "\n" + faintStyle.Render("ctrl+s - save, esc - quit")
 
 	case titleView:
 		return header +
