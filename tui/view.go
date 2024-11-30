@@ -32,7 +32,7 @@ func (m model) View() string {
 			fmt.Sprintf(
 				"What’s your time?\n\n%s\n\n%s",
 				m.textInputTime.View(),
-				faintStyle.Render("enter - next(now save), esc - quit"),
+				faintStyle.Render("enter - next, esc - quit"),
 			) + "\n"
 
 	case projectSelectView:
