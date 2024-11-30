@@ -34,13 +34,14 @@ type model struct {
 	spinner   spinner.Model
 	isLoading bool
 
-	projectCursor int
 
+	projectCursor int
 	projects    []Project
 	currProject Project
 
-	categories       []Category
 	categoriesCursor int
+	categories       []Category
+    currCategory Category
 }
 
 // Custom message for loading notes
@@ -269,13 +270,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// force set currProject by cursor
 				m.currProject = m.projects[m.projectCursor]
 
+                m.currCategory = m.categories[m.categoriesCursor]
+
 				// Start loading spinner
 				m.isLoading = true
 
 				return m, tea.Batch(
 					m.spinner.Tick,
 					func() tea.Msg {
-						err := m.store.SaveNoteWithProject(m.currNote, m.currProject.Id)
+						err := m.store.SaveNoteWithProject(m.currNote, m.currProject.Id, m.currCategory.Id)
 						if err != nil {
 							// Handle save error (simplified for example)
 							return tea.Quit
