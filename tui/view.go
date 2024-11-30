@@ -52,6 +52,23 @@ func (m model) View() string {
 
 		return header + s.String()
 
+	case projectCategoiesView:
+		s := strings.Builder{}
+		s.WriteString("Category?\n\n")
+
+		for i := 0; i < len(m.categories); i++ {
+			if m.categoriesCursor == i {
+				s.WriteString("(•) ")
+			} else {
+				s.WriteString("( ) ")
+			}
+
+            s.WriteString(m.categories[i].Name)
+            s.WriteString("\n")
+		}
+
+		return header + s.String()
+
 	case titleView:
 		return header +
 			"Note title:\n\n" +
