@@ -50,7 +50,7 @@ func (m model) View() string {
             s.WriteString("\n")
 		}
 
-		return header + s.String()
+		return header + s.String() + "\n" + faintStyle.Render("enter - next, esc - quit")
 
 	case projectCategoiesView:
 		s := strings.Builder{}
