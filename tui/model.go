@@ -41,6 +41,9 @@ type model struct {
 	categoriesCursor int
 	categories       []Category
 	currCategory     Category
+
+	filteredNotes []Note    // Notes filtered by the current date
+	currentDate   time.Time // Tracks the displayed date
 }
 
 // Custom message for loading notes
@@ -67,6 +70,8 @@ func NewModel(store *Store) model {
 		log.Fatalf("unable to get projects: %v", err)
 	}
 
+	today := time.Now().Truncate(24 * time.Hour)
+
 	spin := spinner.New()
 	spin.Spinner = spinner.Dot
 
@@ -80,6 +85,7 @@ func NewModel(store *Store) model {
 		isLoading:     false,
 		textInputTime: textinput.New(),
 		projects:      projects,
+		currentDate:   today,
 	}
 }
 
@@ -126,10 +132,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.projectCursor = 0
 			m.currProject = m.projects[m.projectCursor]
 		}
-        if len(m.categories) > 0 {
-            m.categoriesCursor = 0
-            m.currCategory = m.categories[m.categoriesCursor]
-        }
+		if len(m.categories) > 0 {
+			m.categoriesCursor = 0
+			m.currCategory = m.categories[m.categoriesCursor]
+		}
 		m.state = listView
 
 	case deleteCompleteMsg:
@@ -211,6 +217,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						},
 					)
 				}
+			case "ctrl+n":
+                if m.currentDate.AddDate(0, 0, 1).After(time.Now()) {
+                    break // Prevent advancing beyond the current date
+                }
+				m.currentDate = m.currentDate.AddDate(0, 0, 1)
+				m.filteredNotes = filterNotesByDate(m.notes, m.currentDate)
+			case "ctrl+p":
+				m.currentDate = m.currentDate.AddDate(0, 0, -1)
+				m.filteredNotes = filterNotesByDate(m.notes, m.currentDate)
+            case "ctrl+g":
+                today := time.Now().Truncate(24 * time.Hour)
+                m.currentDate = today
+				m.filteredNotes = filterNotesByDate(m.notes, m.currentDate)
 			}
 		case titleView:
 			switch key {
@@ -479,4 +498,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 	return m, tea.Batch(cmds...)
+}
+
+func filterNotesByDate(notes []Note, date time.Time) []Note {
+	filtered := []Note{}
+	for _, note := range notes {
+		if note.CreatedAt.Truncate(24 * time.Hour).Equal(date.Truncate(24 * time.Hour)) {
+			filtered = append(filtered, note)
+		}
+	}
+	return filtered
 }
