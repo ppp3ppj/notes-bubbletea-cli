@@ -17,6 +17,7 @@ const (
 	bodyView
 	timeView
 	projectSelectView
+	projectCategoiesView
 )
 
 type model struct {
@@ -37,6 +38,9 @@ type model struct {
 
 	projects    []Project
 	currProject Project
+
+	categories       []Category
+	categoriesCursor int
 }
 
 // Custom message for loading notes
@@ -117,13 +121,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.isEditing = false
 		m.currNote = Note{}
 		// reset currProject
-        // or m.currProject = Project{}
-        if len(m.projects) > 0 {
-            m.projectCursor = 0
-            m.currProject = m.projects[m.projectCursor]
-        }
+		// or m.currProject = Project{}
+		if len(m.projects) > 0 {
+			m.projectCursor = 0
+			m.currProject = m.projects[m.projectCursor]
+		}
 		m.state = listView
-
 
 	case deleteCompleteMsg:
 		m.notes = msg.notes
@@ -244,6 +247,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "enter":
 				m.currProject = m.projects[m.projectCursor]
 
+				categories, err := m.store.GetCategoriesByProject(m.currProject.Id)
+				if err != nil {
+					// handle err ...
+				}
+
+				m.categories = categories
+
+                // categories > 1 will redirect if not must will force to save
+                // or set unknown or error
+                if len(m.categories) > 0 {
+                    m.state = projectCategoiesView
+                }
+
 			case "ctrl+s":
 				body := m.textArea.Value()
 				m.currNote.Body = body
@@ -275,6 +291,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return saveCompleteMsg{notes: newNotes}
 					},
 				)
+			}
+
+		case projectCategoiesView:
+			switch key {
+			case "q":
+				return m, tea.Quit
+			case "esc":
+				m.state = projectSelectView
+			case "enter":
+                // for enter case
+			case "down", "j":
+				m.categoriesCursor++
+				if m.categoriesCursor >= len(m.categories) {
+					m.categoriesCursor = 0
+				}
+			case "up", "k":
+				m.categoriesCursor--
+				if m.categoriesCursor < 0 {
+					m.categoriesCursor = len(m.categories) - 1
+				}
 			}
 
 		case timeView:
