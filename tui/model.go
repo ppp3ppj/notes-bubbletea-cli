@@ -17,6 +17,7 @@ const (
 	bodyView
 	timeView
 	projectSelectView
+	projectCategoiesView
 )
 
 type model struct {
@@ -34,9 +35,12 @@ type model struct {
 	isLoading bool
 
 	projectCursor int
+	projects      []Project
+	currProject   Project
 
-	projects    []Project
-	currProject Project
+	categoriesCursor int
+	categories       []Category
+	currCategory     Category
 }
 
 // Custom message for loading notes
@@ -117,13 +121,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.isEditing = false
 		m.currNote = Note{}
 		// reset currProject
-        // or m.currProject = Project{}
-        if len(m.projects) > 0 {
-            m.projectCursor = 0
-            m.currProject = m.projects[m.projectCursor]
+		// or m.currProject = Project{}
+		if len(m.projects) > 0 {
+			m.projectCursor = 0
+			m.currProject = m.projects[m.projectCursor]
+		}
+        if len(m.categories) > 0 {
+            m.categoriesCursor = 0
+            m.currCategory = m.categories[m.categoriesCursor]
         }
 		m.state = listView
-
 
 	case deleteCompleteMsg:
 		m.notes = msg.notes
@@ -244,6 +251,85 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "enter":
 				m.currProject = m.projects[m.projectCursor]
 
+				categories, err := m.store.GetCategoriesByProject(m.currProject.Id)
+				if err != nil {
+					// handle err ...
+				}
+
+				m.categories = categories
+
+				// categories > 1 will redirect if not must will force to save
+				// or set unknown or error
+				if len(m.categories) > 0 {
+					if m.isEditing {
+						for i, category := range m.categories {
+							if category.Name == m.currNote.Category.Name { // Adjust comparison if necessary
+								m.categoriesCursor = i
+								break
+							}
+						}
+					}
+
+					//m.projectCursor = 2
+					m.currCategory = m.categories[m.categoriesCursor]
+					m.state = projectCategoiesView
+				}
+
+				/*
+								case "ctrl+s":
+									body := m.textArea.Value()
+									m.currNote.Body = body
+									totalTime := m.textInputTime.Value()
+									m.currNote.TotalTime = totalTime
+
+									// force set currProject by cursor
+									m.currProject = m.projects[m.projectCursor]
+
+					                m.currCategory = m.categories[m.categoriesCursor]
+
+									// Start loading spinner
+									m.isLoading = true
+
+									return m, tea.Batch(
+										m.spinner.Tick,
+										func() tea.Msg {
+											err := m.store.SaveNoteWithProject(m.currNote, m.currProject.Id, m.currCategory.Id)
+											if err != nil {
+												// Handle save error (simplified for example)
+												return tea.Quit
+											}
+											newNotes, err := m.store.GetNotes()
+											if err != nil {
+												// Handle fetch error (simplified for example)
+												return tea.Quit
+											}
+
+											// Simulate load operation with a delay
+											time.Sleep(400 * time.Millisecond) // Simulated delay
+											return saveCompleteMsg{notes: newNotes}
+										},
+									)
+				*/
+			}
+
+		case projectCategoiesView:
+			switch key {
+			case "q":
+				return m, tea.Quit
+			case "esc":
+				m.state = projectSelectView
+			case "enter":
+				// for enter case
+			case "down", "j":
+				m.categoriesCursor++
+				if m.categoriesCursor >= len(m.categories) {
+					m.categoriesCursor = 0
+				}
+			case "up", "k":
+				m.categoriesCursor--
+				if m.categoriesCursor < 0 {
+					m.categoriesCursor = len(m.categories) - 1
+				}
 			case "ctrl+s":
 				body := m.textArea.Value()
 				m.currNote.Body = body
@@ -253,13 +339,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// force set currProject by cursor
 				m.currProject = m.projects[m.projectCursor]
 
+				m.currCategory = m.categories[m.categoriesCursor]
+
 				// Start loading spinner
 				m.isLoading = true
 
 				return m, tea.Batch(
 					m.spinner.Tick,
 					func() tea.Msg {
-						err := m.store.SaveNoteWithProject(m.currNote, m.currProject.Id)
+						err := m.store.SaveNoteWithProject(m.currNote, m.currProject.Id, m.currCategory.Id)
 						if err != nil {
 							// Handle save error (simplified for example)
 							return tea.Quit

@@ -32,7 +32,7 @@ func (m model) View() string {
 			fmt.Sprintf(
 				"What’s your time?\n\n%s\n\n%s",
 				m.textInputTime.View(),
-				faintStyle.Render("enter - next(now save), esc - quit"),
+				faintStyle.Render("enter - next, esc - quit"),
 			) + "\n"
 
 	case projectSelectView:
@@ -50,7 +50,24 @@ func (m model) View() string {
             s.WriteString("\n")
 		}
 
-		return header + s.String()
+		return header + s.String() + "\n" + faintStyle.Render("enter - next, esc - quit")
+
+	case projectCategoiesView:
+		s := strings.Builder{}
+		s.WriteString("Category?\n\n")
+
+		for i := 0; i < len(m.categories); i++ {
+			if m.categoriesCursor == i {
+				s.WriteString("(•) ")
+			} else {
+				s.WriteString("( ) ")
+			}
+
+            s.WriteString(m.categories[i].Name)
+            s.WriteString("\n")
+		}
+
+		return header + s.String() + "\n" + faintStyle.Render("ctrl+s - save, esc - quit")
 
 	case titleView:
 		return header +
