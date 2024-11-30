@@ -34,14 +34,13 @@ type model struct {
 	spinner   spinner.Model
 	isLoading bool
 
-
 	projectCursor int
-	projects    []Project
-	currProject Project
+	projects      []Project
+	currProject   Project
 
 	categoriesCursor int
 	categories       []Category
-    currCategory Category
+	currCategory     Category
 }
 
 // Custom message for loading notes
@@ -255,12 +254,67 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				m.categories = categories
 
-                // categories > 1 will redirect if not must will force to save
-                // or set unknown or error
-                if len(m.categories) > 0 {
-                    m.state = projectCategoiesView
-                }
+				// categories > 1 will redirect if not must will force to save
+				// or set unknown or error
+				if len(m.categories) > 0 {
+					m.state = projectCategoiesView
+				}
 
+				/*
+								case "ctrl+s":
+									body := m.textArea.Value()
+									m.currNote.Body = body
+									totalTime := m.textInputTime.Value()
+									m.currNote.TotalTime = totalTime
+
+									// force set currProject by cursor
+									m.currProject = m.projects[m.projectCursor]
+
+					                m.currCategory = m.categories[m.categoriesCursor]
+
+									// Start loading spinner
+									m.isLoading = true
+
+									return m, tea.Batch(
+										m.spinner.Tick,
+										func() tea.Msg {
+											err := m.store.SaveNoteWithProject(m.currNote, m.currProject.Id, m.currCategory.Id)
+											if err != nil {
+												// Handle save error (simplified for example)
+												return tea.Quit
+											}
+											newNotes, err := m.store.GetNotes()
+											if err != nil {
+												// Handle fetch error (simplified for example)
+												return tea.Quit
+											}
+
+											// Simulate load operation with a delay
+											time.Sleep(400 * time.Millisecond) // Simulated delay
+											return saveCompleteMsg{notes: newNotes}
+										},
+									)
+				*/
+			}
+
+		case projectCategoiesView:
+			switch key {
+			case "q":
+				return m, tea.Quit
+			case "esc":
+				m.state = projectSelectView
+			case "enter":
+				// for enter case
+			case "down", "j":
+				m.categoriesCursor++
+				if m.categoriesCursor >= len(m.categories) {
+					m.categoriesCursor = 0
+				}
+			case "up", "k":
+				m.categoriesCursor--
+				if m.categoriesCursor < 0 {
+					m.categoriesCursor = len(m.categories) - 1
+				}
 			case "ctrl+s":
 				body := m.textArea.Value()
 				m.currNote.Body = body
@@ -270,7 +324,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// force set currProject by cursor
 				m.currProject = m.projects[m.projectCursor]
 
-                m.currCategory = m.categories[m.categoriesCursor]
+				m.currCategory = m.categories[m.categoriesCursor]
 
 				// Start loading spinner
 				m.isLoading = true
@@ -294,26 +348,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return saveCompleteMsg{notes: newNotes}
 					},
 				)
-			}
-
-		case projectCategoiesView:
-			switch key {
-			case "q":
-				return m, tea.Quit
-			case "esc":
-				m.state = projectSelectView
-			case "enter":
-                // for enter case
-			case "down", "j":
-				m.categoriesCursor++
-				if m.categoriesCursor >= len(m.categories) {
-					m.categoriesCursor = 0
-				}
-			case "up", "k":
-				m.categoriesCursor--
-				if m.categoriesCursor < 0 {
-					m.categoriesCursor = len(m.categories) - 1
-				}
 			}
 
 		case timeView:
