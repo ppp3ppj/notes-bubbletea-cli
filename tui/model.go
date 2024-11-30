@@ -126,6 +126,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.projectCursor = 0
 			m.currProject = m.projects[m.projectCursor]
 		}
+        if len(m.categories) > 0 {
+            m.categoriesCursor = 0
+            m.currCategory = m.categories[m.categoriesCursor]
+        }
 		m.state = listView
 
 	case deleteCompleteMsg:
@@ -257,6 +261,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// categories > 1 will redirect if not must will force to save
 				// or set unknown or error
 				if len(m.categories) > 0 {
+					if m.isEditing {
+						for i, category := range m.categories {
+							if category.Name == m.currNote.Category.Name { // Adjust comparison if necessary
+								m.categoriesCursor = i
+								break
+							}
+						}
+					}
+
+					//m.projectCursor = 2
+					m.currCategory = m.categories[m.categoriesCursor]
 					m.state = projectCategoiesView
 				}
 
