@@ -279,13 +279,13 @@ func (s *Store) GetProjects() ([]Project, error) {
 	return projects, nil
 }
 
-func (s *Store) SaveNoteWithProject(note Note, projectId, category int) error {
+func (s *Store) SaveNoteWithProject(note Note, projectId, category int, currentdate time.Time) error {
 	now := time.Now().UTC()
 
 	if note.Id == "" {
 		note.Id = uuid.New().String()
-		note.CreatedAt = now
-		note.UpdatedAt = now
+		note.CreatedAt = currentdate.UTC()
+		note.UpdatedAt = currentdate.UTC()
 	} else {
 		note.UpdatedAt = now
 	}
