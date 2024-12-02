@@ -91,7 +91,7 @@ func (m model) View() string {
 
 	case listView:
 		var notesList string
-		for i, n := range m.filteredNotes {
+		for i, n := range m.notes {
 			prefix := " "
 			if i == m.listIndex {
 				prefix = ">"
