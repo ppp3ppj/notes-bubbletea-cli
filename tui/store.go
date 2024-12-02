@@ -279,13 +279,13 @@ func (s *Store) GetProjects() ([]Project, error) {
 	return projects, nil
 }
 
-func (s *Store) SaveNoteWithProject(note Note, projectId, category int) error {
+func (s *Store) SaveNoteWithProject(note Note, projectId, category int, currentdate time.Time) error {
 	now := time.Now().UTC()
 
 	if note.Id == "" {
 		note.Id = uuid.New().String()
-		note.CreatedAt = now
-		note.UpdatedAt = now
+		note.CreatedAt = currentdate.UTC()
+		note.UpdatedAt = currentdate.UTC()
 	} else {
 		note.UpdatedAt = now
 	}
@@ -397,4 +397,41 @@ func (s *Store) UpdateNoteCategory(noteId string, categoryId int) error {
 	`
 	_, err := s.conn.Exec(query, categoryId, noteId)
 	return err
+}
+
+func (s *Store) GetNotesByDate(currentDate time.Time) ([]Note, error) {
+	query := `
+        SELECT
+			n.Id, n.Title, n.Body, n.TotalTime, n.CreatedAt, n.UpdatedAt,
+			p.Id AS ProjectId, p.Name AS ProjectName, p.Description AS ProjectDescription,
+			c.Id AS CategoryId, c.Name AS CategoryName
+		FROM Notes n
+		INNER JOIN Projects p ON n.ProjectId = p.Id
+		LEFT JOIN Categories c ON n.CategoryId = c.Id
+		WHERE date(n.CreatedAt) = date(?);
+	`
+
+	rows, err := s.conn.Query(query, currentDate.UTC().Format("2006-01-02"))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var notes []Note
+	for rows.Next() {
+		var note Note
+		var project Project
+		var category Category
+		if err := rows.Scan(
+			&note.Id, &note.Title, &note.Body, &note.TotalTime, &note.CreatedAt, &note.UpdatedAt,
+			&project.Id, &project.Name, &project.Description,
+			&category.Id, &category.Name,
+		); err != nil {
+			return nil, err
+		}
+		note.Project = project // Attach the project details to the note
+		note.Category = category // Attach the category details to the note
+		notes = append(notes, note)
+	}
+	return notes, nil
 }

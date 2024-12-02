@@ -41,6 +41,9 @@ type model struct {
 	categoriesCursor int
 	categories       []Category
 	currCategory     Category
+
+	//filteredNotes []Note    // Notes filtered by the current date
+	currentDate time.Time // Tracks the displayed date
 }
 
 // Custom message for loading notes
@@ -57,7 +60,11 @@ type deleteCompleteMsg struct {
 }
 
 func NewModel(store *Store) model {
-	notes, err := store.GetNotes()
+	today := time.Now().Truncate(24 * time.Hour)
+
+	//notes, err := store.GetNotes()
+	notes, err := store.GetNotesByDate(today)
+
 	if err != nil {
 		log.Fatalf("unable to get notes: %v", err)
 	}
@@ -80,6 +87,7 @@ func NewModel(store *Store) model {
 		isLoading:     false,
 		textInputTime: textinput.New(),
 		projects:      projects,
+		currentDate:   today,
 	}
 }
 
@@ -126,10 +134,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.projectCursor = 0
 			m.currProject = m.projects[m.projectCursor]
 		}
-        if len(m.categories) > 0 {
-            m.categoriesCursor = 0
-            m.currCategory = m.categories[m.categoriesCursor]
-        }
+		if len(m.categories) > 0 {
+			m.categoriesCursor = 0
+			m.currCategory = m.categories[m.categoriesCursor]
+		}
 		m.state = listView
 
 	case deleteCompleteMsg:
@@ -183,7 +191,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					func() tea.Msg {
 						// Simulate a delay (e.g., fetching notes)
 						time.Sleep(1 * time.Second)
-						newNotes, err := m.store.GetNotes()
+						newNotes, err := m.store.GetNotesByDate(m.currentDate)
 						if err != nil {
 							// Handle error (for simplicity, quit)
 							return tea.Quit
@@ -202,7 +210,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 								// Handle error
 								return tea.Quit()
 							}
-							updatedNotes, err := m.store.GetNotes()
+							updatedNotes, err := m.store.GetNotesByDate(m.currentDate)
 							if err != nil {
 								return tea.Quit()
 							}
@@ -211,6 +219,32 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						},
 					)
 				}
+			case "ctrl+n":
+				if m.currentDate.AddDate(0, 0, 1).After(time.Now()) {
+					break // Prevent advancing beyond the current date
+				}
+				m.currentDate = m.currentDate.AddDate(0, 0, 1)
+				//m.filteredNotes = filterNotesByDate(m.notes, m.currentDate)
+                notes, err := m.store.GetNotesByDate(m.currentDate)
+                if err != nil {
+                    // handle error ...
+                }
+                m.notes = notes
+			case "ctrl+p":
+				m.currentDate = m.currentDate.AddDate(0, 0, -1)
+                notes, err := m.store.GetNotesByDate(m.currentDate)
+                if err != nil {
+                    // handle error ...
+                }
+                m.notes = notes
+			case "ctrl+g":
+				today := time.Now().Truncate(24 * time.Hour)
+				m.currentDate = today
+                notes, err := m.store.GetNotesByDate(m.currentDate)
+                if err != nil {
+                    // handle error ...
+                }
+                m.notes = notes
 			}
 		case titleView:
 			switch key {
@@ -347,12 +381,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Batch(
 					m.spinner.Tick,
 					func() tea.Msg {
-						err := m.store.SaveNoteWithProject(m.currNote, m.currProject.Id, m.currCategory.Id)
+						err := m.store.SaveNoteWithProject(m.currNote, m.currProject.Id, m.currCategory.Id, m.currentDate)
 						if err != nil {
 							// Handle save error (simplified for example)
 							return tea.Quit
 						}
-						newNotes, err := m.store.GetNotes()
+						newNotes, err := m.store.GetNotesByDate(m.currentDate)
 						if err != nil {
 							// Handle fetch error (simplified for example)
 							return tea.Quit
@@ -479,4 +513,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 	return m, tea.Batch(cmds...)
+}
+
+func filterNotesByDate(notes []Note, date time.Time) []Note {
+	filtered := []Note{}
+	for _, note := range notes {
+		if note.CreatedAt.Truncate(24 * time.Hour).Equal(date.Truncate(24 * time.Hour)) {
+			filtered = append(filtered, note)
+		}
+	}
+	return filtered
 }

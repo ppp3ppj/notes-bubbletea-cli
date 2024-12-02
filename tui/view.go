@@ -16,10 +16,12 @@ var (
 
 	editNoteStyle      = lipgloss.NewStyle().Background(lipgloss.Color("98")).Padding(0, 1)
 	editTitleNoteStyle = lipgloss.NewStyle().Background(lipgloss.Color("95")).Padding(0, 1)
+	currentDateStyle = lipgloss.NewStyle().Background(lipgloss.Color("75")).Padding(0, 1)
 )
 
 func (m model) View() string {
 	header := appNameStyle.Render("NOTES APP") + "\n\n"
+	headerCurrentDate := currentDateStyle.Render(m.currentDate.Format("Mon") + ", " +m.currentDate.Format("02 Jan 2006")) + "\n\n"
 
 	if m.isLoading {
 		return header +
@@ -109,9 +111,11 @@ func (m model) View() string {
 		}
 
 		newNoteOption := faintStyle.Render("n - new note") + ", "
-		exitCliOption := faintStyle.Render("q - quit")
+		nextDayOption := faintStyle.Render("ctrl+n - next day") + ", "
+		prevDayOption := faintStyle.Render("ctrl+p - previous day")
+		exitCliOption := faintStyle.Render("q - quit") + ", "
 
-		return header + notesList + newNoteOption + deleteOption + exitCliOption
+		return header + headerCurrentDate + notesList + newNoteOption + deleteOption + exitCliOption + nextDayOption + prevDayOption
 	}
 
 	return header // Fallback to header if no state matches
