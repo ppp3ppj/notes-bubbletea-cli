@@ -366,7 +366,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Batch(
 					m.spinner.Tick,
 					func() tea.Msg {
-						err := m.store.SaveNoteWithProject(m.currNote, m.currProject.Id, m.currCategory.Id)
+						err := m.store.SaveNoteWithProject(m.currNote, m.currProject.Id, m.currCategory.Id, m.currentDate)
 						if err != nil {
 							// Handle save error (simplified for example)
 							return tea.Quit
