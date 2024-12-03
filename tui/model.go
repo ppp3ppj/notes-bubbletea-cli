@@ -1,14 +1,18 @@
 package tui
 
 import (
+	"fmt"
 	"log"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/viewport"
+	"github.com/charmbracelet/glamour"
 )
 
 const (
@@ -18,6 +22,7 @@ const (
 	timeView
 	projectSelectView
 	projectCategoiesView
+	summaryNoteToday
 )
 
 type model struct {
@@ -44,6 +49,8 @@ type model struct {
 
 	//filteredNotes []Note    // Notes filtered by the current date
 	currentDate time.Time // Tracks the displayed date
+
+	summaryNoteViewport viewport.Model
 }
 
 // Custom message for loading notes
@@ -74,20 +81,46 @@ func NewModel(store *Store) model {
 		log.Fatalf("unable to get projects: %v", err)
 	}
 
+	const witdth = 78
+	vp := viewport.New(witdth, 20)
+	vp.Style = lipgloss.NewStyle().
+		BorderStyle(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("62")).
+		Padding(2)
+
+		/*
+		   renderer, err := glamour.NewTermRenderer(
+		       glamour.WithAutoStyle(),
+		       glamour.WithWordWrap(witdth),
+		   )
+
+		   if err != nil {
+		       log.Fatal("unable to render glamour viewport", err)
+		   }
+
+		   str, err := renderer.Render("aaa") // set str empty
+		   if err != nil {
+		       log.Fatal("unable to render content empty", err)
+		   }
+
+		   vp.SetContent(str)
+		*/
+
 	spin := spinner.New()
 	spin.Spinner = spinner.Dot
 
 	return model{
-		state:         listView,
-		store:         store,
-		notes:         notes,
-		textArea:      textarea.New(),
-		textInput:     textinput.New(),
-		spinner:       spin,
-		isLoading:     false,
-		textInputTime: textinput.New(),
-		projects:      projects,
-		currentDate:   today,
+		state:               listView,
+		store:               store,
+		notes:               notes,
+		textArea:            textarea.New(),
+		textInput:           textinput.New(),
+		spinner:             spin,
+		isLoading:           false,
+		textInputTime:       textinput.New(),
+		projects:            projects,
+		currentDate:         today,
+		summaryNoteViewport: vp,
 	}
 }
 
@@ -108,6 +141,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds = append(cmds, cmd)
 
 	m.textInputTime, cmd = m.textInputTime.Update(msg)
+	cmds = append(cmds, cmd)
+
+	m.summaryNoteViewport, cmd = m.summaryNoteViewport.Update(msg)
 	cmds = append(cmds, cmd)
 
 	switch msg := msg.(type) {
@@ -225,26 +261,51 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.currentDate = m.currentDate.AddDate(0, 0, 1)
 				//m.filteredNotes = filterNotesByDate(m.notes, m.currentDate)
-                notes, err := m.store.GetNotesByDate(m.currentDate)
-                if err != nil {
-                    // handle error ...
-                }
-                m.notes = notes
+				notes, err := m.store.GetNotesByDate(m.currentDate)
+				if err != nil {
+					// handle error ...
+				}
+				m.notes = notes
 			case "ctrl+p":
 				m.currentDate = m.currentDate.AddDate(0, 0, -1)
-                notes, err := m.store.GetNotesByDate(m.currentDate)
-                if err != nil {
-                    // handle error ...
-                }
-                m.notes = notes
+				notes, err := m.store.GetNotesByDate(m.currentDate)
+				if err != nil {
+					// handle error ...
+				}
+				m.notes = notes
 			case "ctrl+g":
 				today := time.Now().Truncate(24 * time.Hour)
 				m.currentDate = today
-                notes, err := m.store.GetNotesByDate(m.currentDate)
-                if err != nil {
-                    // handle error ...
-                }
-                m.notes = notes
+				notes, err := m.store.GetNotesByDate(m.currentDate)
+				if err != nil {
+					// handle error ...
+				}
+				m.notes = notes
+			case "ctrl+s":
+
+				renderer, err := glamour.NewTermRenderer(
+					glamour.WithAutoStyle(),
+					glamour.WithWordWrap(78),
+				)
+
+				if err != nil {
+					log.Fatal("unable to render glamour viewport", err)
+				}
+
+				notes, _ := m.store.GetNotesByDate(m.currentDate)
+				content := generateNoteSummaryContent(notes)
+				str, err := renderer.Render(content) // set str empty
+				if err != nil {
+					log.Fatal("unable to render content empty", err)
+				}
+
+				m.summaryNoteViewport.SetContent(str)
+				m.state = summaryNoteToday
+			}
+		case summaryNoteToday:
+			switch key {
+			case "esc":
+				m.state = listView
 			}
 		case titleView:
 			switch key {
@@ -523,4 +584,48 @@ func filterNotesByDate(notes []Note, date time.Time) []Note {
 		}
 	}
 	return filtered
+}
+
+func generateNoteSummaryContent(notes []Note) string {
+	content := "# Notes for Today\n\n"
+	content += "| Title           | Time       | Detail                        |\n"
+	content += "| --------------- | ---------- | --------------------------- |\n"
+
+	// Check if there are no notes
+	if len(notes) == 0 {
+		content += "# No notes for today. 뇨진스🐰\n" // Add placeholder row if no notes
+		return content
+	}
+
+	// Loop through the notes and generate the content
+	for _, note := range notes {
+		// Check if project name is empty and handle accordingly
+		projectName := getFirstString(note.Project.Name)
+		if projectName == "" {
+			projectName = "No Project" // Placeholder if no project name
+		}
+
+		// Check if body is empty and handle accordingly
+		body := note.Body
+		if body == "" {
+			body = "No details provided" // Placeholder if no body content
+		}
+
+		// Format the content with note data
+		content += fmt.Sprintf("| %s | %s | [%s] - %s  |\n",
+			note.Title,
+			note.TotalTime,
+			projectName,
+			body,
+		)
+	}
+
+	return content
+}
+
+func getFirstString(str string) string {
+	if len(str) > 0 {
+		return string(str[0]) // Return the first character as a string
+	}
+	return "" // Return empty string if input is empty
 }
