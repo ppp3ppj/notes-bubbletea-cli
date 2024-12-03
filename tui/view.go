@@ -89,6 +89,9 @@ func (m model) View() string {
 
 		return header + noteDetails + faintStyle.Render("tab - next, esc - discard")
 
+    case summaryNoteToday:
+        return m.summaryNoteViewport.View()
+
 	case listView:
 		var notesList string
 		for i, n := range m.notes {
